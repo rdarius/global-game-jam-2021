@@ -27,13 +27,26 @@ const VISIBLE_RANGE_Y = 700
 
 const PLAYER_SIZE = 80
 const BULLET_SIZE = 30
+const ITEM_SIZE = 64
 
 const BULLET_SHOOTING_DELAY = 100
 
+let time = Date.now()
+
+const getDeltaTime = () => {
+    let t = Date.now()
+    let dt = t - time
+    time = t
+    return dt
+}
+
+
 function onKeyDown(e: any) {
+  game.getPlayer().keyDown(e.keyCode)
   game.getPlayer().setKeyPressed(e.keyCode, true)
 }
 function onKeyUp(e: any) {
+  game.getPlayer().keyUp(e.keyCode)
   game.getPlayer().setKeyPressed(e.keyCode, false)
 }
 
@@ -59,7 +72,7 @@ function onMouseUp(e: MouseEvent) {
   pos.y -= parseInt(canvas.style.height) / 2
   let length = Math.sqrt((pos.x * pos.x) + (pos.y * pos.y))
   let scale = 1 / length
-  scale *= 50
+  scale *= 5
   pos.x *= scale
   pos.y *= scale
   game.getPlayer().addBullet(new Bullet(game.getPlayer(), pos))
@@ -123,6 +136,7 @@ function drawMap(p5: P5) {
   }
 }
 
+
 const sketch = (p5: P5) => {
   p5.setup = () => {
     buildMap()
@@ -151,6 +165,9 @@ const sketch = (p5: P5) => {
   }
 
   p5.draw = () => {
+
+    let dt = getDeltaTime()
+
     p5.background('#000000')
     p5.translate(p5.width/2, p5.height/2)
 
@@ -161,9 +178,24 @@ const sketch = (p5: P5) => {
 
     // drawing items
     for (let item of game.getItems()) {
-
       p5.image(item.item.image, item.position.x - game.getPlayer().position.x, item.position.y - game.getPlayer().position.y)
-
+      if (distance(game.getPlayer().position, item.position) < PLAYER_SIZE + ITEM_SIZE) {
+        switch(item.item.type) {
+          case "HEAL":
+            game.getPlayer().health = 100
+            socket.emit('item-heal')
+            break;
+          case "DAMAGE":
+            game.getPlayer().damage += 2
+            socket.emit('item-damage')
+            break;
+          case "DEFENCE":
+            game.getPlayer().defence += 2
+            socket.emit('item-defence')
+            break;
+        }
+        game.removeItem(item)
+      }
     }
 
 
@@ -191,7 +223,7 @@ const sketch = (p5: P5) => {
         }
 
         // move bullet
-        bullet.move()
+        bullet.move(dt)
 
         // check if bullet colloides with current player
         if (distance(game.getPlayer().position, bullet.position) < BULLET_SIZE + PLAYER_SIZE) {
@@ -229,7 +261,7 @@ const sketch = (p5: P5) => {
       }
 
       // move bullet
-      bullet.move()
+      bullet.move(dt)
 
       // check if bullet collides with other player
       for (let otherPlayer of game.getOtherPlayers()) {
@@ -250,7 +282,7 @@ const sketch = (p5: P5) => {
     p5.text(Math.floor(game.getPlayer().position.x) + ':' + Math.floor(game.getPlayer().position.y), -p5.width/2 + 10, -p5.height/2 + 10)
     
     // moving player depending on keys pressed
-    game.getPlayer().move()
+    game.getPlayer().move(dt)
   }
 
 }

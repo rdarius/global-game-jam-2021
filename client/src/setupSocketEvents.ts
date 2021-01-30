@@ -1,11 +1,17 @@
 import SocketIOClient from 'socket.io-client'
 import Bullet from './Bullet'
+import { getCookie } from './Cookie'
 import Game from './Game'
 import OtherPlayer from './OtherPlayer'
 import { BulletData, PlayerDescription } from './socketDataTypes'
 import { Position } from './types'
 
 export default function setupSocketEvents(socket: SocketIOClient.Socket, game: Game) {
+
+    socket.on('greetings', () => {
+        socket.emit('greetings', {name: getCookie('player-name')})
+    })    
+
     socket.on('your-info', function (playerData: PlayerDescription) {
         let player = game.getPlayer()
         player.color = playerData.color
@@ -13,24 +19,29 @@ export default function setupSocketEvents(socket: SocketIOClient.Socket, game: G
         player.name = playerData.name
         player.position = playerData.position
         player.health = playerData.health
-
         socket.emit('get-other-players')
     })
+
     socket.on('players-info', function (playersData: PlayerDescription[]) {
         for (let playerData of playersData) {
-            game.addOtherPlayer(new OtherPlayer(playerData.id, playerData.name, playerData.position, playerData.color, playerData.health))
+            game.addOtherPlayer(new OtherPlayer(playerData.id, playerData.name, playerData.position, playerData.color, new Map<number, boolean>(), playerData.health))
         }
     })
+
     socket.on('new-player-joined', function (playerData: PlayerDescription) {
         if (game.getPlayer().id !== playerData.id) {
-            game.addOtherPlayer(new OtherPlayer(playerData.id, playerData.name, playerData.position, playerData.color, playerData.health))
+            game.addOtherPlayer(new OtherPlayer(playerData.id, playerData.name, playerData.position, playerData.color, new Map<number, boolean>(), playerData.health))
         }
     })
+    
     socket.on('player-moved', function (movedPlayerData: {id: string, position: Position}) {
         for (let playerData of game.getOtherPlayers()) {
             if (movedPlayerData.id === playerData.id) {
                 playerData.position = movedPlayerData.position;
             }
+        }
+        if (game.getPlayer().id === movedPlayerData.id) {
+            game.getPlayer().position = movedPlayerData.position
         }
     })
     socket.on('player-disconnected', function (disconnectedPlayer: string) {

@@ -1,14 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Blobby Strike</title>
-    <link rel="stylesheet" type="text/css" href="./style.css" />
-  </head>
-  <body>
-    <div id="app"></div>
-    <script src="./bundle.js"></script>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlobbyStrike</title>
+    <style>
+        @font-face {
+            font-family: Ubuntu;
+            src: url('/fonts/Ubuntu/Ubuntu-Regular.ttf');
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Ubuntu', sans-serif;
+        }
+
+        body {
+            background: #000000;
+        }
+
+        main {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        div {
+            color: #7F0000;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 36pt;
+        }
+        input, button {
+            margin: 30px auto;
+            display: block;
+            width: 100%;
+            font-size: 20pt;
+            padding: 8px 6px;
+        }
+        label {
+            display: block;
+            margin: 30px auto;
+            font-size: 20pt;
+        }
+        input, button {
+            border: 1px solid #7F0000;
+            background: transparent;
+            color: #7F0000;
+            outline: transparent;
+        }
+
+        button {
+            cursor: pointer;
+            border-width: 3px;
+        }
+
+        a {
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div>
+            <h1>Blobby-Strike</h1>
+            <label>
+                Choose Your name: <br />
+                <input type="text" onchange="updateName(this)" autofocus />
+                <a href="/game"><button>JOIN</button></a>
+            </label>
+        </div>
+    </main>
+    <script>
+        function updateName(input) {
+            setCookie('player-name', input.value || 'Player', 30)
+        }
+
+        function setCookie(cname, cvalue, exdays) {
+            var d = new Date();
+            d.setTime(d.getTime() + (exdays*24*60*60*1000));
+            var expires = "expires="+ d.toUTCString();
+            document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+        }
+
+        function getCookie(cname) {
+            var name = cname + "=";
+            var decodedCookie = decodeURIComponent(document.cookie);
+            var ca = decodedCookie.split(';');
+            for(var i = 0; i <ca.length; i++) {
+                var c = ca[i];
+                while (c.charAt(0) == ' ') {
+                c = c.substring(1);
+                }
+                if (c.indexOf(name) == 0) {
+                return c.substring(name.length, c.length);
+                }
+            }
+            return "";
+        }
+
+        input = document.querySelector('input').value = getCookie('player-name')
+    </script>
+</body>
 </html>

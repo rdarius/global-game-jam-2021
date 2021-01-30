@@ -38,6 +38,12 @@ export default class Players {
         }
     }
 
+    getPlayer(id: string) {
+        return this.players.find((player) => {
+            return player.socketID === id
+        })
+    }
+
     getPlayers(): Player[] {
         let playerList = []
         for (let player of this.players) {

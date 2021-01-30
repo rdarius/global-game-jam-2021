@@ -30,9 +30,9 @@ export default class Bullet {
         p5.ellipse(position.x, position.y, 30, 30)
     }
 
-    move() {
-        this._position.x += this.direction.x
-        this._position.y += this.direction.y
+    move(delta: number) {
+        this._position.x += this.direction.x * delta
+        this._position.y += this.direction.y * delta
 
         this.timeLeftToLive -= Math.abs(this.direction.x) + Math.abs(this.direction.y)
     }
