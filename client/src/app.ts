@@ -84,29 +84,6 @@ function onCanvasResize() {
   }
 }
 
-function drawPlayer(p5: P5, player: OtherPlayer, x: any, y: any) {
-  p5.stroke(0, 0, 0)
-  p5.strokeWeight(5)
-  p5.fill(player.color)
-  p5.ellipse(x, y, 80, 80)
-  p5.textSize(32)
-  p5.fill(255, 255, 255)
-  p5.textAlign(p5.CENTER, p5.CENTER)
-  p5.text(player.name, x - 300,y - 150, 600, 50)
-  p5.noStroke()
-  p5.fill('#850000')
-  p5.rect(x - 50, y - 90, 100, 5)
-  p5.fill('#008500')
-  p5.rect(x - 50, y - 90, player.health, 5)
-}
-
-function drawBullet(p5: P5, color: string, x: any, y: any) {
-  p5.stroke(0, 0, 0)
-  p5.strokeWeight(3)
-  p5.fill(color)
-  p5.ellipse(x, y, 30, 30)
-}
-
 function buildMap() {
   tileTypes = {
     grass: {
@@ -207,7 +184,10 @@ const sketch = (p5: P5) => {
 
         // draw bullet if in range
         if (isVisible(game.getPlayer().position, bullet.position)) {
-          drawBullet(p5, bullet.shooter.color, bullet.position.x - game.getPlayer().position.x, bullet.position.y - game.getPlayer().position.y)
+          bullet.draw(p5, {
+            x: bullet.position.x - game.getPlayer().position.x,
+            y: bullet.position.y - game.getPlayer().position.y,
+          })
         }
 
         // move bullet
@@ -241,7 +221,11 @@ const sketch = (p5: P5) => {
     for (let bullet of game.getPlayer().getBullets()) {
       // drawing bullet if in range
       if (isVisible(game.getPlayer().position, bullet.position)) {
-        drawBullet(p5, bullet.shooter.color, bullet.position.x - game.getPlayer().position.x, bullet.position.y - game.getPlayer().position.y)
+        bullet.draw(p5,
+          {
+            x: bullet.position.x - game.getPlayer().position.x,
+            y: bullet.position.y - game.getPlayer().position.y
+          })
       }
 
       // move bullet
