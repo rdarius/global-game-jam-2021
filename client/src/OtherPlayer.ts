@@ -14,14 +14,13 @@ export default class OtherPlayer {
         private _color: string,
         private _health: number
     ) {
-        this._health = 100
         this._damage = 10
     }
 
     hit(bullet: Bullet, socket: SocketIOClient.Socket) {
-        this.health -= bullet.shooter.damage
+        // this.health -= bullet.shooter.damage
         bullet.timeToLive = -1
-        socket.emit('health-update', {player: this.id, health: this.health})
+        socket.emit('hit-player', {player: this.id, damage: bullet.shooter.damage})
     }
 
     addBullet(bullet: Bullet) {

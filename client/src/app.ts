@@ -140,7 +140,7 @@ function distance(p1: any, p2: any) {
 
 function drawMap(p5: P5) {
   for (let tile of mapTiles) {
-    if (isVisible(game.getPlayer().position, tile.position)) {
+    if (isVisible(game.getPlayer().position, {x: tile.position.x - tile.image.width / 2, y: tile.position.y - tile.image.height / 2})) {
       p5.image(tile.image, tile.position.x - game.getPlayer().position.x - tile.image.width/2, tile.position.y - game.getPlayer().position.y - tile.image.height/2)
     }
   }
@@ -149,7 +149,7 @@ function drawMap(p5: P5) {
 const sketch = (p5: P5) => {
   p5.setup = () => {
     buildMap()
-    p5.createCanvas(1920, 1080, p5.WEBGL);
+    p5.createCanvas(1920, 1080);
     canvas = document.querySelector('canvas')!
     onCanvasResize()
     window.addEventListener('resize', onCanvasResize)
@@ -175,7 +175,7 @@ const sketch = (p5: P5) => {
 
   p5.draw = () => {
     p5.background('#000000')
-    // p5.translate(p5.width/2, p5.height/2)
+    p5.translate(p5.width/2, p5.height/2)
 
 
     // drawing map background

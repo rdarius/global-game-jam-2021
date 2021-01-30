@@ -43,6 +43,10 @@ export default function setupSocketEvents(socket: SocketIOClient.Socket, game: G
             otherPlayer.addBullet(new Bullet(otherPlayer, data.direction))
         }
     })
+
+    socket.on('ded', (data: BulletData) => {
+        window.location.href = '/ded';
+    })
     
     socket.on('health-update', (data: {id: string, health: number}) => {
         let otherPlayer = game.getOtherPlayer(data.id)
@@ -52,6 +56,7 @@ export default function setupSocketEvents(socket: SocketIOClient.Socket, game: G
         if (game.getPlayer().socket.id === data.id) {
             game.getPlayer().health = data.health
             if (data.health <= 0) {
+                game.getPlayer().socket.disconnect()
                 window.location.href = '/ded';
             }
         }
