@@ -33,6 +33,15 @@ class Players {
         })
     }
 
+    updatePlayerHealth(id: string, health: number) {
+        for (let player of this.players) {
+            if (player.socketID === id) {
+                player.player.setHealth(health)
+                return
+            }
+        }
+    }
+
     getPlayers(): Player[] {
         let playerList = []
         for (let player of this.players) {
@@ -56,14 +65,16 @@ class Player {
     private name: string
     private position: {x: number, y: number}
     private color: string
+    private health: number
 
     constructor(private socket: socketIO.Socket) {
         this.name = 'Player#' + Math.floor(Math.random() * 10000)
         this.position = {
-            x: Math.random()*10 - 5,
-            y: Math.random()*10 - 5,
+            x: Math.random()*500 - 250,
+            y: Math.random()*500 - 250,
         }
         this.color = '#' + (Math.floor(Math.random() * 256)).toString(16) + (Math.floor(Math.random() * 256)).toString(16) + (Math.floor(Math.random() * 256)).toString(16)
+        this.health = 100
     }
 
     getPlayerDescription() {
@@ -72,7 +83,12 @@ class Player {
             color: this.color,
             position: this.position,
             id: this.socket.id,
+            health: this.health
         }
+    }
+
+    setHealth(hp: number) {
+        this.health = hp
     }
 
     setPosition(x: number, y: number) {
@@ -92,27 +108,52 @@ app.use(express.static(path.join(__dirname, '/../../client/dist')))
 app.get('/', function(req, res) {
     res.sendFile('index.html', { root: __dirname + '/../../client/static/'});
 });
+app.get('/ded', function(req, res) {
+    res.sendFile('ded.html', { root: __dirname + '/../../client/static/'});
+});
 
-server.listen(8089, function(){
+server.listen(8089, function() {
     console.log('running on port 8089');
 });
 
 io.on('connection', function(socket: socketIO.Socket) {
-    console.log('Player connected');
+    console.log(socket.id, 'connected');
+
     let player = new Player(socket)
-    let otherPlayers = []
-    for (let p of players.getPlayers()) {
-        otherPlayers.push(p.getPlayerDescription())
-    }
     players.addPlayer(socket.id, player)
-    socket.emit('players-info', otherPlayers)
-    io.emit('new-player-joined', player.getPlayerDescription())
     socket.emit('your-info', player.getPlayerDescription())
-    socket.on('message', function(msg) {
-        console.log(msg)
-    });
+
+    socket.on('get-other-players', () => {
+        let otherPlayers = []
+        for (let p of players.getPlayers()) {
+            if (socket.id !== p.getPlayerDescription().id) {
+                otherPlayers.push(p.getPlayerDescription())
+            }
+        }
+        socket.emit('players-info', otherPlayers)
+    })
+
+    io.emit('new-player-joined', player.getPlayerDescription())
+
+
     socket.on('i-moved', (position: {x: number, y: number}) => {
         players.updatePlayerPosition(socket.id, {x: position.x, y: position.y})
         io.emit('player-moved', {id: socket.id, position: position})
     })
+
+    socket.on('disconnect', () => {
+        console.log(socket.id, 'disconnected')
+        players.removePlayer(socket.id)
+        io.emit('player-disconnected', socket.id)
+    })
+
+    socket.on('shoot', (data: {position: {x: number, y: number}, direction: {x: number, y: number}}) => {
+        io.emit('shoot', {id: socket.id, position: data.position, direction: data.direction})
+    })
+
+    socket.on('health-update', (data: {player: string, health: number}) => {
+        players.updatePlayerHealth(data.player, data.health)
+        io.emit('health-update', {id: data.player, health: data.health})
+    })
+
 });

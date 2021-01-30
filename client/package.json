@@ -6,6 +6,7 @@
   "scripts": {
     "tsc": "tsc -w",
     "build": "webpack",
+    "build:prod": "webpack --config webpack.config.prod.js",
     "start": "webpack serve --watch"
   },
   "repository": {
@@ -34,5 +35,7 @@
     "webpack-cli": "^4.4.0",
     "webpack-dev-server": "^3.11.2"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "clean-webpack-plugin": "^3.0.0"
+  }
 }
