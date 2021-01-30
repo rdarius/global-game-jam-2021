@@ -87,6 +87,7 @@ const players = new Players()
 app.use(cors())
 
 app.use(express.static(path.join(__dirname, '/../../client/static/assets')))
+app.use(express.static(path.join(__dirname, '/../../client/dist')))
 
 app.get('/', function(req, res) {
     res.sendFile('index.html', { root: __dirname + '/../../client/static/'});
