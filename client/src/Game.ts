@@ -4,16 +4,32 @@ import OtherPlayer from "./OtherPlayer";
 import UserPlayer from "./UserPlayer";
 import { PlayerDescription } from "./socketDataTypes";
 import Pickable from "./Pickable";
+import Player from "./Player";
+import PlayerList from "./PlayerList";
+import p5 from "p5";
 
 export default class Game {
 
     private player: UserPlayer
-    private otherPlayers: OtherPlayer[] = []
-    private bullets: Bullet[] = []
+    private _otherPlayers: PlayerList
     private items: Pickable[] = []
+    private images: Map<string, p5.Image> = new Map<string, p5.Image>()
 
     constructor(_socket: SocketIOClient.Socket) {
-        this.player = new UserPlayer(_socket.id, _socket, '', {x:0, y:0}, 'white', new Map<number, boolean>(), 100)
+        this.player = new UserPlayer(_socket,_socket.id, 'Player', {x:0, y:0}, 'white', new Map<number, boolean>(), 100, 10, 10)
+        this._otherPlayers = new PlayerList()
+    }
+
+    setImages(images: Map<string, p5.Image>) {
+        this.images = images
+    }
+
+    getImages() {
+        return this.images
+    }
+
+    get otherPlayers() {
+        return this._otherPlayers
     }
 
     addItem(item: Pickable) {
@@ -24,6 +40,12 @@ export default class Game {
         return this.items
     }
 
+    removeItemById(id: string) {
+        this.items = this.items.filter((item) => {
+            return item.id !== id
+        })
+    }
+
     removeItem(pickable: Pickable) {
         this.items = this.items.filter((item) => {
             return item !== pickable
@@ -32,47 +54,6 @@ export default class Game {
 
     getPlayer(): UserPlayer {
         return this.player
-    }
-
-    setPlayer(description: PlayerDescription) {
-        this.player.id = description.id
-        this.player.name = description.name
-        this.player.position = description.position
-        this.player.color = description.color
-    }
-
-    addOtherPlayer(player: OtherPlayer) {
-        if (player.id === this.player.id) return
-        let oPlayer = this.otherPlayers.find((otherPlayer) => {
-            return player.id === otherPlayer.id
-        })
-        if (oPlayer) {
-            oPlayer.color = player.color
-            oPlayer.id = player.id
-            oPlayer.name = player.name
-            oPlayer.position = player.position
-        } else {
-            this.otherPlayers.push(player)
-        }
-    }
-
-    removeOtherPlayer(id: string) {
-        this.otherPlayers = this.otherPlayers.filter((player) => {
-            return player.id !== id
-        })
-    }
-
-    getOtherPlayers() {
-        return this.otherPlayers
-    }
-
-    getOtherPlayer(id: string) {
-        for (let player of this.otherPlayers) {
-            if (player.id === id) {
-                return player
-            }
-        }
-        return null
     }
 
 }

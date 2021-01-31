@@ -9,9 +9,10 @@ import Bullet from './Bullet'
 import { Position } from './types'
 import Pickable from './Pickable'
 import Item from './Item'
+import * as uuid from 'uuid'
 
-const socket = io("https://blobbystrike.ioi.lt", {secure: true})
-const game = new Game(socket)
+let socket: SocketIOClient.Socket
+let game: Game
 
 let images: Map<string, P5.Image>
 let fonts: Map<string, P5.Font>
@@ -40,18 +41,15 @@ const getDeltaTime = () => {
     return dt
 }
 
-
 function onKeyDown(e: any) {
   game.getPlayer().keyDown(e.keyCode)
-  game.getPlayer().setKeyPressed(e.keyCode, true)
 }
 function onKeyUp(e: any) {
   game.getPlayer().keyUp(e.keyCode)
-  game.getPlayer().setKeyPressed(e.keyCode, false)
 }
 
 function onContextMenu() {
-  game.getPlayer().clearKeysPressed()
+  game.getPlayer().keysPressed.clear()
 }
 
 function getCursorPosition(canvas: HTMLCanvasElement, event: MouseEvent) {
@@ -72,11 +70,11 @@ function onMouseUp(e: MouseEvent) {
   pos.y -= parseInt(canvas.style.height) / 2
   let length = Math.sqrt((pos.x * pos.x) + (pos.y * pos.y))
   let scale = 1 / length
-  scale *= 5
+  scale *= 2
   pos.x *= scale
   pos.y *= scale
   game.getPlayer().addBullet(new Bullet(game.getPlayer(), pos))
-  socket.emit('shoot', {position: game.getPlayer().position, direction: pos})
+  socket.emit('shoot', {id: game.getPlayer().id, position: game.getPlayer().position, direction: pos})
 }
 
 function onCanvasResize() {
@@ -138,9 +136,18 @@ function drawMap(p5: P5) {
 
 
 const sketch = (p5: P5) => {
+  
+
+  p5.preload = () => {
+    let resources = prealoadResources(p5)
+    
+    images = resources.images
+    fonts = resources.fonts
+  }
+
   p5.setup = () => {
     buildMap()
-    p5.createCanvas(1920, 1080);
+    p5.createCanvas(1920, 1080)
     canvas = document.querySelector('canvas')!
     onCanvasResize()
     window.addEventListener('resize', onCanvasResize)
@@ -150,16 +157,9 @@ const sketch = (p5: P5) => {
     canvas.addEventListener("mousedown", onMouseUp)
     p5.textFont(fonts.get('Ubuntu')!)
 
-    game.addItem(new Pickable({x: 150, y: 150}, new Item(images.get('healthPack')!, "HEAL")))
-    game.addItem(new Pickable({x: 150, y: 100}, new Item(images.get('powerUp')!, "DAMAGE")))
-    game.addItem(new Pickable({x: 150, y: 100}, new Item(images.get('shield')!, "DEFENCE")))
-  }
-
-  p5.preload = () => {
-    let resources = prealoadResources(p5)
-    
-    images = resources.images
-    fonts = resources.fonts
+    socket = io("https://blobbystrike.ioi.lt", {secure: true})
+    game = new Game(socket)
+    game.setImages(images)
 
     setupSocketEvents(socket, game)
   }
@@ -168,12 +168,12 @@ const sketch = (p5: P5) => {
 
     let dt = getDeltaTime()
 
-    p5.background('#000000')
+    p5.background('#690000')
     p5.translate(p5.width/2, p5.height/2)
 
 
     // drawing map background
-    drawMap(p5)
+    // drawMap(p5)
 
 
     // drawing items
@@ -183,24 +183,24 @@ const sketch = (p5: P5) => {
         switch(item.item.type) {
           case "HEAL":
             game.getPlayer().health = 100
-            socket.emit('item-heal')
+            socket.emit('item-picked', {id: item.id})
+            socket.emit('hit-player', {id: game.getPlayer().id, health: game.getPlayer().health})
             break;
-          case "DAMAGE":
-            game.getPlayer().damage += 2
-            socket.emit('item-damage')
-            break;
-          case "DEFENCE":
-            game.getPlayer().defence += 2
-            socket.emit('item-defence')
-            break;
+          // case "DAMAGE":
+          //   game.getPlayer().damage += 2
+          //   socket.emit('item-damage')
+          //   break;
+          // case "DEFENCE":
+          //   game.getPlayer().defence += 2
+          //   socket.emit('item-defence')
+          //   break;
         }
         game.removeItem(item)
       }
     }
 
 
-  
-    for (let otherPlayer of game.getOtherPlayers()) {
+    game.otherPlayers.getPlayers().forEach((otherPlayer) => {
       // going through other player list
 
       // draw player if in range
@@ -209,6 +209,9 @@ const sketch = (p5: P5) => {
           x: otherPlayer.position.x - game.getPlayer().position.x,
           y: otherPlayer.position.y - game.getPlayer().position.y
         })
+
+        // move player if in range (guessing where player will be when request from servers comes back)
+        otherPlayer.move(dt)
       }
 
       // going through bullets of that player
@@ -231,19 +234,19 @@ const sketch = (p5: P5) => {
         }
 
         // check if bullet collides with other player
-        for (let otherPlayerCheck of game.getOtherPlayers()) {
+        game.otherPlayers.getPlayers().forEach((otherPlayerCheck) => {
           if (distance(otherPlayerCheck.position, bullet.position) < BULLET_SIZE + PLAYER_SIZE) {
             // check if player bullet collides with is not the player who shot the bullet
             if (otherPlayerCheck.id !== bullet.shooter.id) {
               bullet.timeToLive = -1
             }
           }
-        }
+        })
       }
 
       // removig bullets that has traveled far enough
       otherPlayer.removeExpiredBullets()
-    }
+    })
     
     // drawing current player
     game.getPlayer().draw(p5, {x: 0, y: 0})
@@ -264,12 +267,13 @@ const sketch = (p5: P5) => {
       bullet.move(dt)
 
       // check if bullet collides with other player
-      for (let otherPlayer of game.getOtherPlayers()) {
+      game.otherPlayers.getPlayers().forEach((otherPlayer) => {
+        if (otherPlayer.id === game.getPlayer().id) return
         if (distance(otherPlayer.position, bullet.position) < BULLET_SIZE + PLAYER_SIZE) {
           // register hit to other player
           otherPlayer.hit(bullet, game.getPlayer().socket)
         }
-      }
+      })
     }
     
     // removig bullets that has traveled far enough
@@ -282,7 +286,12 @@ const sketch = (p5: P5) => {
     p5.text(Math.floor(game.getPlayer().position.x) + ':' + Math.floor(game.getPlayer().position.y), -p5.width/2 + 10, -p5.height/2 + 10)
     
     // moving player depending on keys pressed
+    let previousePosition = {...game.getPlayer().position}
     game.getPlayer().move(dt)
+    let newPosition = {...game.getPlayer().position}
+    if (previousePosition.x !== newPosition.x || previousePosition.y !== newPosition.y) {
+      game.getPlayer().socket.emit('player-moved', {position: newPosition})
+    }
   }
 
 }

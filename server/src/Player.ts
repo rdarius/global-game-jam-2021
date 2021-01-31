@@ -11,13 +11,6 @@ export default class Player {
     private defence: number
     private keysPressed: Map<number, boolean>
 
-    private KEY_W = 87
-    private KEY_A = 65
-    private KEY_S = 83
-    private KEY_D = 68
-
-    private MOVEMENT_SPEED = 1
-
     constructor(private _socket: socketIO.Socket) {
         this.name = 'Player#' + Math.floor(Math.random() * 10000)
         this.position = {
@@ -27,7 +20,7 @@ export default class Player {
         this.color = '#' + (Math.floor(Math.random() * 256)).toString(16) + (Math.floor(Math.random() * 256)).toString(16) + (Math.floor(Math.random() * 256)).toString(16)
         this.health = Math.floor(Math.random() * 50) + 50
         this.damage = 10
-        this.defence = 10
+        this.defence = 0
         this.keysPressed = new Map<number, boolean>()
     }
 
@@ -77,7 +70,10 @@ export default class Player {
             color: this.color,
             position: this.position,
             id: this.socket.id,
-            health: this.health
+            health: this.health,
+            damage: this.damage,
+            defence: this.defence,
+            keysPressed: this.keysPressed
         }
     }
 
@@ -94,24 +90,6 @@ export default class Player {
         return {
             x: this.position.x,
             y: this.position.y,
-        }
-    }
-
-    move(delta: number) {
-        if (this.keysPressed.get(this.KEY_A)) {
-            this.position.x -= this.MOVEMENT_SPEED * delta
-        }
-        
-        if (this.keysPressed.get(this.KEY_D)) {
-            this.position.x += this.MOVEMENT_SPEED * delta
-        }
-        
-        if (this.keysPressed.get(this.KEY_W)) {
-            this.position.y -= this.MOVEMENT_SPEED * delta
-        }
-        
-        if (this.keysPressed.get(this.KEY_S)) {
-            this.position.y += this.MOVEMENT_SPEED * delta
         }
     }
 

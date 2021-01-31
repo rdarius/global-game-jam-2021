@@ -9,6 +9,9 @@ export type PlayerDescription = {
     },
     id: string,
     health: number,
+    damage: number,
+    defence: number,
+    keysPressed: Map<number, boolean>
 }
 
 export type BulletData = {

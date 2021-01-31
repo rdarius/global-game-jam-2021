@@ -1,5 +1,5 @@
 import p5 from "p5";
-import OtherPlayer from "./OtherPlayer";
+import Player from "./Player";
 import { Position } from "./types";
 
 export default class Bullet {
@@ -9,7 +9,7 @@ export default class Bullet {
     private _position: Position
 
     constructor(
-        private _shooter: OtherPlayer,
+        private _shooter: Player,
         private direction: Position,
     ) {
         this._position = {..._shooter.position}
