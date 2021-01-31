@@ -4,7 +4,7 @@ export default class Item {
 
     constructor(
         private _image: p5.Image,
-        private _type: "HEAL" | "DAMAGE" | "DEFENCE"
+        private _type: "HEAL" | "DAMAGE" | "DEFENCE" | "POINTS"
     ) {
 
     }

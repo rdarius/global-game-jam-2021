@@ -25,7 +25,7 @@ export default class Bullet {
 
     draw(p5: p5, position: Position) {
         p5.stroke(0, 0, 0)
-        p5.strokeWeight(3)
+        p5.strokeWeight(2)
         p5.fill(this._shooter.color)
         p5.ellipse(position.x, position.y, 30, 30)
     }

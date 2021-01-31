@@ -59,7 +59,7 @@ export default class OtherPlayer {
 
     draw(p5: p5, position: Position) {
         p5.stroke(0, 0, 0)
-        p5.strokeWeight(5)
+        p5.strokeWeight(2)
         p5.fill(this.color)
         p5.ellipse(position.x, position.y, 80, 80)
         p5.textSize(32)

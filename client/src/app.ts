@@ -10,6 +10,8 @@ import { Position } from './types'
 import Pickable from './Pickable'
 import Item from './Item'
 import * as uuid from 'uuid'
+import Wall from './Wall'
+import { collideCircleCircle, collideRectCircle } from './collide'
 
 let socket: SocketIOClient.Socket
 let game: Game
@@ -43,6 +45,7 @@ const getDeltaTime = () => {
 
 function onKeyDown(e: any) {
   game.getPlayer().keyDown(e.keyCode)
+
 }
 function onKeyUp(e: any) {
   game.getPlayer().keyUp(e.keyCode)
@@ -126,11 +129,22 @@ function distance(p1: any, p2: any) {
   return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2))
 }
 
-function drawMap(p5: P5) {
+function drawMapX(p5: P5) {
   for (let tile of mapTiles) {
     if (isVisible(game.getPlayer().position, {x: tile.position.x - tile.image.width / 2, y: tile.position.y - tile.image.height / 2})) {
       p5.image(tile.image, tile.position.x - game.getPlayer().position.x - tile.image.width/2, tile.position.y - game.getPlayer().position.y - tile.image.height/2)
     }
+  }
+}
+
+function drawMap(p5: P5) {
+  p5.stroke("#000000")
+  p5.strokeWeight(4)
+  for (let x = -p5.width; x < p5.width; x+=128) {
+    p5.line(x - game.getPlayer().position.x % 128, -p5.height, x - game.getPlayer().position.x % 128, p5.height)
+  }
+  for (let y = -p5.width; y < p5.height; y+=128) {
+    p5.line(-p5.width, y - game.getPlayer().position.y % 128, p5.width, y - game.getPlayer().position.y % 128)
   }
 }
 
@@ -161,6 +175,18 @@ const sketch = (p5: P5) => {
     game = new Game(socket)
     game.setImages(images)
 
+    // left
+    game.addWall(new Wall({ x: -3060, y: -3060, }, { x: 20, y: 6120 }))
+
+    // top
+    game.addWall(new Wall({ x: -3060, y: -3060, }, { x: 6120, y: 20 }))
+
+    // right
+    game.addWall(new Wall({ x: 3040, y: -3060, }, { x: 20, y: 6120 }))
+
+    // bottom
+    game.addWall(new Wall({ x: -3060, y: 3040, }, { x: 6120, y: 20 }))
+
     setupSocketEvents(socket, game)
   }
 
@@ -173,18 +199,22 @@ const sketch = (p5: P5) => {
 
 
     // drawing map background
-    // drawMap(p5)
+    drawMap(p5)
 
+    p5.strokeWeight(2)
 
     // drawing items
     for (let item of game.getItems()) {
       p5.image(item.item.image, item.position.x - game.getPlayer().position.x, item.position.y - game.getPlayer().position.y)
-      if (distance(game.getPlayer().position, item.position) < PLAYER_SIZE + ITEM_SIZE) {
+      if (collideRectCircle(p5, item.position.x, item.position.y, ITEM_SIZE, ITEM_SIZE, game.getPlayer().position.x, game.getPlayer().position.y, PLAYER_SIZE)) {
         switch(item.item.type) {
           case "HEAL":
             game.getPlayer().health = 100
-            socket.emit('item-picked', {id: item.id})
             socket.emit('hit-player', {id: game.getPlayer().id, health: game.getPlayer().health})
+            socket.emit('item-picked', {id: item.id})
+            break;
+          case "POINTS":
+            socket.emit('item-picked', {id: item.id})
             break;
           // case "DAMAGE":
           //   game.getPlayer().damage += 2
@@ -211,7 +241,7 @@ const sketch = (p5: P5) => {
         })
 
         // move player if in range (guessing where player will be when request from servers comes back)
-        otherPlayer.move(dt)
+        otherPlayer.move(p5, dt, game.getWalls())
       }
 
       // going through bullets of that player
@@ -229,13 +259,13 @@ const sketch = (p5: P5) => {
         bullet.move(dt)
 
         // check if bullet colloides with current player
-        if (distance(game.getPlayer().position, bullet.position) < BULLET_SIZE + PLAYER_SIZE) {
+        if (collideCircleCircle(p5, game.getPlayer().position.x, game.getPlayer().position.y, PLAYER_SIZE, bullet.position.x, bullet.position.y, BULLET_SIZE)) {
           bullet.timeToLive = -1
         }
 
         // check if bullet collides with other player
         game.otherPlayers.getPlayers().forEach((otherPlayerCheck) => {
-          if (distance(otherPlayerCheck.position, bullet.position) < BULLET_SIZE + PLAYER_SIZE) {
+          if (collideCircleCircle(p5, otherPlayerCheck.position.x, otherPlayerCheck.position.y, PLAYER_SIZE, bullet.position.x, bullet.position.y, BULLET_SIZE)) {
             // check if player bullet collides with is not the player who shot the bullet
             if (otherPlayerCheck.id !== bullet.shooter.id) {
               bullet.timeToLive = -1
@@ -269,25 +299,70 @@ const sketch = (p5: P5) => {
       // check if bullet collides with other player
       game.otherPlayers.getPlayers().forEach((otherPlayer) => {
         if (otherPlayer.id === game.getPlayer().id) return
-        if (distance(otherPlayer.position, bullet.position) < BULLET_SIZE + PLAYER_SIZE) {
+        if (collideCircleCircle(p5, otherPlayer.position.x, otherPlayer.position.y, PLAYER_SIZE, bullet.position.x, bullet.position.y, BULLET_SIZE)) {
           // register hit to other player
           otherPlayer.hit(bullet, game.getPlayer().socket)
         }
       })
+    }
+
+    for (let wall of game.getWalls()) {
+      wall.draw(p5, game.getPlayer().position)
     }
     
     // removig bullets that has traveled far enough
     game.getPlayer().removeExpiredBullets()
 
     // drawing coordinates of the current player
-    p5.fill('#ffffff')
+    p5.fill('#690000')
     p5.stroke('#000000')
     p5.textAlign(p5.LEFT, p5.TOP)
-    p5.text(Math.floor(game.getPlayer().position.x) + ':' + Math.floor(game.getPlayer().position.y), -p5.width/2 + 10, -p5.height/2 + 10)
+    p5.text(Math.floor(game.getPlayer().position.x) + ':' + Math.floor(game.getPlayer().position.y), -p5.width/2 + 30, -p5.height/2 + 30)
+
+    p5.fill('#690000')
+    p5.stroke('#000000')
+    p5.textAlign(p5.RIGHT, p5.TOP)
+    p5.text('Players: ' + (+game.otherPlayers.getPlayers().size + 1), p5.width/2 - 30, -p5.height/2 + 30)
+
+
+    p5.fill('#690000')
+    p5.stroke('#000000')
+    p5.textAlign(p5.RIGHT, p5.BOTTOM)
+
+
+    let scores = new Map<string, number>()
+    game.otherPlayers.getPlayers().forEach((player) => {
+      scores.set(player.id, player.score)
+    })
+    scores.set(game.getPlayer().id, game.getPlayer().score)
+
+    scores[Symbol.iterator] = function* () {
+        yield* [...this.entries()].sort((a, b) => b[1] - a[1]);
+    }
+
+    let text = 'All time best: ' + game.bestScore.name + ': ' + game.bestScore.score + '\n\n'
+
+    for (let [id, score] of scores) {
+      let player = game.otherPlayers.getPlayer(id)
+      if (!player) {
+        if (game.getPlayer().id === id) {
+          player = game.getPlayer()
+        }
+      }
+      if (player) {
+        text += '\n' + player.name + ': ' + score
+      }
+    }
+
+    text += `\n---------\nYour score: ${game.getPlayer().score}`;
+
+    p5.text(text, p5.width/2 - 830, p5.height/2 - 830, 800, 800)
     
     // moving player depending on keys pressed
     let previousePosition = {...game.getPlayer().position}
-    game.getPlayer().move(dt)
+
+    game.getPlayer().move(p5, dt, game.getWalls())
+    
     let newPosition = {...game.getPlayer().position}
     if (previousePosition.x !== newPosition.x || previousePosition.y !== newPosition.y) {
       game.getPlayer().socket.emit('player-moved', {position: newPosition})

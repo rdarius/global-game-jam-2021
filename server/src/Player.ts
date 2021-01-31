@@ -10,6 +10,7 @@ export default class Player {
     private damage: number
     private defence: number
     private keysPressed: Map<number, boolean>
+    private score: number = 0
 
     constructor(private _socket: socketIO.Socket) {
         this.name = 'Player#' + Math.floor(Math.random() * 10000)
@@ -17,11 +18,19 @@ export default class Player {
             x: Math.random()*1000 - 500,
             y: Math.random()*1000 - 500,
         }
-        this.color = '#' + (Math.floor(Math.random() * 256)).toString(16) + (Math.floor(Math.random() * 256)).toString(16) + (Math.floor(Math.random() * 256)).toString(16)
+        this.color = '#690000'// + (Math.floor(Math.random() * 256)).toString(16) + (Math.floor(Math.random() * 256)).toString(16) + (Math.floor(Math.random() * 256)).toString(16)
         this.health = Math.floor(Math.random() * 50) + 50
         this.damage = 10
         this.defence = 0
         this.keysPressed = new Map<number, boolean>()
+    }
+
+    addScore() {
+        this.score++
+    }
+
+    getScore() {
+        return this.score
     }
 
     get socket() {

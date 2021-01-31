@@ -29,7 +29,7 @@
         }
 
         div {
-            color: #7F0000;
+            color: #690000;
             text-align: center;
         }
 
@@ -49,9 +49,9 @@
             font-size: 20pt;
         }
         input, button {
-            border: 1px solid #7F0000;
+            border: 1px solid #690000;
             background: transparent;
-            color: #7F0000;
+            color: #690000;
             outline: transparent;
         }
 
@@ -62,6 +62,14 @@
 
         a {
             text-decoration: none;
+        }
+
+        span.notice {
+            color: #690000;
+            position: fixed;
+            display: block;
+            bottom: 24px;
+            left: 24px;
         }
     </style>
 </head>
@@ -76,6 +84,7 @@
             </label>
         </div>
     </main>
+    <span class="notice">* This game is being developed straigt onto this website, so random restarts might occur during gameplay!</div>
     <script>
         function updateName(input) {
             setCookie('player-name', input.value || 'Player', 30)

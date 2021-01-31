@@ -1,6 +1,8 @@
 import { Position } from './types'
 import p5 from 'p5'
 import Bullet from './Bullet'
+import Wall from './Wall'
+import { collideRectCircle } from './collide'
 
 export default class Player {
     
@@ -10,6 +12,11 @@ export default class Player {
     private KEY_D = 68
 
     private MOVEMENT_SPEED = 0.8
+    private PLAYER_SIZE = 80
+    private BULLET_SIZE = 30
+    private ITEM_SIZE = 64
+
+    private _score = 0
 
     private bullets: Bullet[] = []
 
@@ -17,13 +24,21 @@ export default class Player {
         private _id: string,
         private _name: string = 'Player',
         private _position: Position = {x: 0, y: 0},
-        private _color: string = '#ffffff',
+        private _color: string = '#690000',
         private _keysPressed: Map<number, boolean> = new Map<number, boolean>(),
         private _health: number = 100,
         private _damage: number = 10,
         private _defence: number = 10,
     ) {
         this._keysPressed = new Map<number, boolean>()
+    }
+
+    get score() {
+        return this._score
+    }
+
+    set score(score: number) {
+        this._score = score
     }
 
     get keysPressed() {
@@ -116,54 +131,61 @@ export default class Player {
         }
     }
 
-    move(delta: number) {
+    move(p5: p5, delta: number, walls: Wall[]) {
+        let direction = {
+            x: 0,
+            y: 0
+        }
         if (this.keysPressed.get(this.KEY_A)) {
-            this.position.x -= this.MOVEMENT_SPEED * delta
+            direction.x -= 1
         }
         
         if (this.keysPressed.get(this.KEY_D)) {
-            this.position.x += this.MOVEMENT_SPEED * delta
+            direction.x += 1
         }
         
         if (this.keysPressed.get(this.KEY_W)) {
-            this.position.y -= this.MOVEMENT_SPEED * delta
+            direction.y -= 1
         }
         
         if (this.keysPressed.get(this.KEY_S)) {
-            this.position.y += this.MOVEMENT_SPEED * delta
+            direction.y += 1
         }
 
-        if (this.position.x < -1600) {
-            this.position.x = -1600
+        let x = this.position.x + this.MOVEMENT_SPEED * delta * direction.x
+        let y = this.position.y + this.MOVEMENT_SPEED * delta * direction.y
+        let newPos = {
+            x: x,
+            y: y,
+        }
+        for (let wall of walls) {
+            if (collideRectCircle(p5, wall.position.x, wall.position.y, wall.size.x, wall.size.y, x, this.position.y, this.PLAYER_SIZE)) {
+                console.log('collision on x')
+                newPos.x = this.position.x
+            }
+            if (collideRectCircle(p5, wall.position.x, wall.position.y, wall.size.x, wall.size.y, this.position.x, y, this.PLAYER_SIZE)) {
+                console.log('collision on y')
+                newPos.y = this.position.y
+            }
         }
 
-        if (this.position.y < -2000) {
-            this.position.y = -2000
-        }
-
-        if (this.position.x > 1500) {
-            this.position.x = 1500
-        }
-
-        if (this.position.y > 1900) {
-            this.position.y = 1900
-        }
+        this.position = newPos
     }
 
     draw(p5: p5, position: Position) {
         p5.stroke(0, 0, 0)
-        p5.strokeWeight(5)
+        p5.strokeWeight(2)
         p5.fill(this.color)
-        p5.ellipse(position.x, position.y, 80, 80)
+        p5.ellipse(position.x, position.y, this.PLAYER_SIZE, this.PLAYER_SIZE)
         p5.textSize(32)
-        p5.fill(255, 255, 255)
+        p5.fill("#690000")
         p5.textAlign(p5.CENTER, p5.CENTER)
         p5.text(this.name, position.x - 300, position.y - 150, 600, 50)
-        p5.noStroke()
-        p5.fill('#850000')
-        p5.rect(position.x - 50, position.y - 90, 100, 5)
-        p5.fill('#008500')
-        p5.rect(position.x - 50, position.y - 90, this.health, 5)
+        p5.strokeWeight(2)
+        p5.fill('#690000')
+        p5.rect(position.x - 50, position.y - 90, 100, 10)
+        p5.fill('#000000')
+        p5.rect(position.x - 50, position.y - 90, this.health, 10)
     }
 
     addBullet(bullet: Bullet) {

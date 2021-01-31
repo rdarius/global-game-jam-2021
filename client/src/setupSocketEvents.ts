@@ -1,4 +1,5 @@
 import SocketIOClient from 'socket.io-client'
+import { stringify } from 'uuid'
 import Bullet from './Bullet'
 import { getCookie } from './Cookie'
 import Game from './Game'
@@ -12,7 +13,7 @@ import { Position } from './types'
 export default function setupSocketEvents(socket: SocketIOClient.Socket, game: Game) {
 
     socket.on('greetings', () => {
-        socket.emit('greetings', {name: getCookie('player-name')})
+        socket.emit('greetings', {name: getCookie('player-name').substr(0, 32)})
     })
 
     socket.on('your-info', function (playerData: PlayerDescription) {
@@ -87,14 +88,31 @@ export default function setupSocketEvents(socket: SocketIOClient.Socket, game: G
         window.location.href = '/ded';
     })
 
-    socket.on('new-item', (data: {id: string, position: Position, item: {image: 'healthPack', type: "HEAL"}}) => {
+    socket.on('new-item', (data: {id: string, position: Position, item: {image: 'healthPack' | 'Points', type: "HEAL" | "POINTS"}}) => {
         let image = game.getImages().get(data.item.image)
         if (image) {
             game.addItem(new Pickable(data.id, data.position, new Item(image, data.item.type)))
         }
     })
 
-    socket.on('item-picked', (data: {id: string}) => {
+    socket.on('update-score', (data: {id: string, score: number}) => {
+        let oPlayer = game.otherPlayers.getPlayer(data.id)
+        if (oPlayer) {
+            oPlayer.score = data.score
+        }
+        if (game.getPlayer().id === data.id) {
+            game.getPlayer().score = data.score
+        }
+    })
+
+    socket.on('best-player', (data: {name: string, score: number}) => {
+        game.bestScore = {
+            name: data.name,
+            score: data.score
+        }
+    })
+
+    socket.on('item-picked-resolve', (data: {id: string}) => {
         game.removeItemById(data.id)
     })
     

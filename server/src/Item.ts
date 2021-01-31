@@ -1,8 +1,8 @@
 export default class Item {
 
     constructor(
-        private _image: "healthPack",
-        private _type: "HEAL" | "DAMAGE" | "DEFENCE"
+        private _image: "healthPack" | "Points",
+        private _type: "HEAL" | "DAMAGE" | "DEFENCE" | "POINTS"
     ) {
 
     }

@@ -10,14 +10,26 @@ import { Position } from './types'
 import Pickable from './Pickable'
 import Item from './Item'
 import * as uuid from 'uuid'
+import fs from 'fs'
+
+
+
+
+const minx = -3000
+const maxx = 3000
+const miny = -3000
+const maxy = 3000
+
 
 const app = express()
 const server = new http.Server(app)
 const io = new socketIO.Server(server)
 
 const players = new Players()
-const items: Pickable[] = []
+let items: Pickable[] = []
 const playerList = new PlayerList()
+
+let scores = JSON.parse(fs.readFileSync(__dirname + '/../score.json').toString())
 
 app.use(cors())
 
@@ -40,6 +52,22 @@ server.listen(8089, function() {
     console.log('running on port 8089');
 });
 
+function makePointsItem() {
+    let item = new Item('Points', "POINTS")
+    let pickable = new Pickable(
+        uuid.v4(),    
+        {
+            x: Math.floor(Math.random() * (Math.abs(minx) + maxx) + minx),
+            y: Math.floor(Math.random() * (Math.abs(miny) + maxy) + miny),
+        },
+        item
+    )
+    items.push(pickable)
+    io.emit('new-item', {id: pickable.id, position: pickable.position, item: {image: pickable.item.image, type: pickable.item.type}})
+}
+
+makePointsItem()
+
 io.on('connection', function(socket: socketIO.Socket) {
     console.log(socket.id, 'connected');
 
@@ -52,6 +80,21 @@ io.on('connection', function(socket: socketIO.Socket) {
 
         socket.emit('your-info', player.getPlayerDescription())
         io.emit('new-player-joined', player.getPlayerDescription())
+
+        let best = {
+            name: '',
+            score: 0
+        }
+
+        for (let name in scores) {
+            if (scores[name] > best.score) {
+                best.name = name
+                best.score = scores[name]
+            }
+        }
+
+        socket.emit('best-player', best)
+
     })
 
     socket.on('get-other-players', () => {
@@ -99,7 +142,46 @@ io.on('connection', function(socket: socketIO.Socket) {
     })
 
     socket.on('item-picked', (data: {id: string}) => {
-        socket.broadcast.emit('item-picked', {id: data.id})
+        console.log('item picked')
+        let player = playerList.getPlayer(socket.id)
+        if (player) {
+            console.log('player found')
+            for (let item of items) {
+                if (item.id === data.id && item.item.type === "POINTS") {
+                    console.log('item points')
+                    player.addScore()
+                    if (scores[player.getName()] && scores[player.getName()] < player.getScore()) {
+                        console.log('update score')
+                        scores[player.getName()] = player.getScore()
+                        fs.writeFileSync(__dirname + '/../score.json', JSON.stringify(scores))
+                    } else {
+                        console.log('new score')
+                        scores[player.getName()] = player.getScore()
+                        fs.writeFileSync(__dirname + '/../score.json', JSON.stringify(scores))
+                    }
+                    
+                    let best = {
+                        name: '',
+                        score: 0
+                    }
+                    for (let name in scores) {
+                        if (scores[name] > best.score) {
+                            best.name = name
+                            best.score = scores[name]
+                        }
+                    }
+                    io.emit('best-player', best)
+
+                    io.emit('update-score', {id: player.socket.id, score: player.getScore()})
+                    makePointsItem()
+                    break;
+                }
+            }
+        }
+        items = items.filter((item) => {
+            return item.id !== data.id
+        })
+        socket.broadcast.emit('item-picked-resolve', {id: data.id})
     })
 
 
@@ -167,12 +249,7 @@ io.on('connection', function(socket: socketIO.Socket) {
 
 setInterval(() => {
 
-    const minx = -1600
-    const maxx = 1500
-    const miny = -2000
-    const maxy = 1900
-
-    if (items.length < 20) {
+    if (items.length < 21) {
         let item = new Item('healthPack', "HEAL")
         let pickable = new Pickable(
             uuid.v4(),    

@@ -12,6 +12,7 @@ export default function prealoadResources(p5: P5): {
     // images.set('powerUp', p5.loadImage('images/PowerUp.png'))
     // images.set('shield', p5.loadImage('images/Shield.png'))
     images.set('healthPack', p5.loadImage('images/HealthPack.png'))
+    images.set('Points', p5.loadImage('images/Points.png'))
 
     fonts.set('Ubuntu', p5.loadFont('fonts/Ubuntu/Ubuntu-Regular.ttf'))
 
